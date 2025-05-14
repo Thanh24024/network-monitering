@@ -1,0 +1,54 @@
+groups:
+  - name: snmp_alerts
+    rules:
+
+      # 🔥 ALERT: CPU sử dụng cao
+      - alert: High_CPU_Usage
+        expr: cisco_cpu_5min > 5
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU sử dụng cao trên {{ $labels.instance }}"
+          description: "Sử dụng CPU trên 80% trong 10 giây"
+
+      # 🔥 ALERT: RAM sử dụng cao
+      - alert: High_Memory_Usage
+        expr: (cisco_memory_used / (cisco_memory_used + cisco_memory_free)) * 100 > 5
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAM sử dụng cao trên {{ $labels.instance }}"
+          description: "Sử dụng RAM vượt quá 85% trong 10 giây"
+
+      # 🔥 ALERT: Dung lượng lưu trữ gần đầy
+      - alert: High_Disk_Usage
+        expr: (hrStorageUsed / hrStorageSize) * 100 > 5
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dung lượng lưu trữ gần đầy trên {{ $labels.instance }}"
+          description: "Sử dụng Dung lượng lưu trữ trên 90% trong 10 giây"
+
+      # 🔥 ALERT: Nhiệt độ cao
+      - alert: High_Temperature
+        expr: cisco_temperature > 20
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nhiệt độ cao trên {{ $labels.instance }}"
+          description: "Cảm biến nhiệt độ đo được trên 70°C."
+
+      # 🔥 ALERT: Port bị tắt
+      - alert: Interface_Down
+        expr: ifOperStatus == 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Interface {{ $labels.ifDescr }} is down"
+          description: "Interface {{ $labels.ifDescr }} on {{ $labels.instance }} is down."
+ 
