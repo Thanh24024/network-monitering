@@ -54,9 +54,9 @@ services:
     networks:
       - monitoring
 
-  telegram-bot:
+  discord-bot:
     build:
-      context: ./telegram_alert_bot
+      context: ./discord_alert_bot
     ports:
       - "8000:8000"
     networks:
