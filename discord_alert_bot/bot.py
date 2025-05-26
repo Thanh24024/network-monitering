@@ -3,31 +3,30 @@ import requests
 
 app = Flask(__name__)
 
-BOT_TOKEN = '7494031859:AAGGWdgrEE3BVl_WTH4BbPQ-dZmGm09CwRY'
-CHAT_ID = '5898979798'
+DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1329267219514916989/qCOWZooQUZUxQ5ccZX2mbD_UeO8avhZGSWsuM6iRcQ07xmrFRWFRcUr-q3skGFcSP0PX'
 
 @app.route('/alert', methods=['POST'])
 def alert():
     data = request.json
     for alert in data.get('alerts', []):
-        msg = f"""🚨 *{alert['labels'].get('alertname')}*
-Instance: `{alert['labels'].get('instance')}`
-Severity: `{alert['labels'].get('severity')}`
-Summary: {alert['annotations'].get('summary')}
-Description: {alert['annotations'].get('description')}
-Status: *{alert['status']}*
+        msg = f"""🚨 **{alert['labels'].get('alertname')}**
+**Instance**: `{alert['labels'].get('instance')}`
+**Severity**: `{alert['labels'].get('severity')}`
+**Summary**: {alert['annotations'].get('summary')}
+**Description**: {alert['annotations'].get('description')}
+**Status**: **{alert['status']}**
 """
-        send_telegram(msg)
+        send_discord(msg)
     return '', 200
 
-def send_telegram(message):
-    url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
+def send_discord(message):
     payload = {
-        'chat_id': CHAT_ID,
-        'text': message,
-        'parse_mode': 'Markdown'
+        "content": message
     }
-    requests.post(url, json=payload)
+    headers = {
+        "Content-Type": "application/json"
+    }
+    requests.post(DISCORD_WEBHOOK_URL, json=payload, headers=headers)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
