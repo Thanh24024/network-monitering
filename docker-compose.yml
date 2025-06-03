@@ -61,6 +61,30 @@ services:
       - "8000:8000"
     networks:
       - monitoring
+      
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - monitoring
 
   snmp_parser:
     build:
@@ -99,6 +123,8 @@ services:
     networks:
       - monitoring
     command: python detect.py
+    labels:
+ 	 - "job=ai_detection"
 
 networks:
   monitoring:
