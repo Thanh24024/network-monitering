@@ -3,11 +3,12 @@ import joblib
 import time
 import os
 import requests
+import sys
 
 # URL webhook Discord
-DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1329267219514916989/qCOWZooQUZUxQ5ccZX2mbD_UeO8avhZGSWsuM6iRcQ07xmrFRWFRcUr-q3skGFcSP0PX'
+DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1379434925593460766/KrHC1lcCKEBqjmxO6JxQkFqq2frVanMR_j33mpBxki0ARWCwQPGeZwl12PM0ryj7xswi'
 
-# Hàm gửi thông báo lên Discord
+# Hàm gửi cảnh báo lên Discord
 def send_discord_alert(msg):
     payload = {"content": msg}
     try:
@@ -17,12 +18,21 @@ def send_discord_alert(msg):
     except Exception as e:
         print(f"[!] Lỗi kết nối Discord: {e}")
 
+# Hàm in log bất thường ra stdout (cho Promtail)
+def log_anomaly(row):
+    log_line = f"{row['timestamp']},{row['cpu']},{row['ram']},{row['temp']}," \
+               f"{row['GigabitEthernet1/0_in']},{row['GigabitEthernet1/0_out']}," \
+               f"{row['GigabitEthernet2/0_in']},{row['GigabitEthernet2/0_out']}," \
+               f"{row['GigabitEthernet3/0_in']},{row['GigabitEthernet3/0_out']}," \
+               f"{row['anomaly']}"
+    print(log_line)
+    sys.stdout.flush()
+
 print("[+] Bắt đầu giám sát bất thường...")
 
 # Load model 1 lần
 model = joblib.load("train_ai/model.joblib")
 
-# Danh sách các đặc trưng
 features = [
     "cpu", "ram", "temp",
     "GigabitEthernet1/0_in", "GigabitEthernet1/0_out",
@@ -53,21 +63,22 @@ while True:
         if not os.path.exists("outputs"):
             os.makedirs("outputs")
 
-        new_data[new_data["anomaly"] == "Bất thường"].to_csv(
-            "outputs/anomalies.csv", mode='a', index=False,
-            header=not os.path.exists("outputs/anomalies.csv")
-        )
-
         new_data.to_csv(
             "outputs/outputs.csv", mode='a', index=False,
             header=not os.path.exists("outputs/outputs.csv")
         )
 
-        print(new_data[["timestamp", "cpu", "ram", "temp", "anomaly"]])
-
-        # Gửi cảnh báo nếu phát hiện bất thường
         anomalies = new_data[new_data["anomaly"] == "Bất thường"]
+        anomalies.to_csv(
+            "outputs/anomalies.csv", mode='a', index=False,
+            header=not os.path.exists("outputs/anomalies.csv")
+        )
+
+        # In log bất thường ra stdout để Promtail đẩy vào Loki
         for _, row in anomalies.iterrows():
+            log_anomaly(row)
+
+            # Gửi cảnh báo lên Discord
             msg = f"""🚨 **Phát hiện bất thường**
 🕒 Thời gian: `{row['timestamp']}`
 💻 CPU: `{row['cpu']}%`, RAM: `{row['ram']}%`, Nhiệt độ: `{row['temp']}`
@@ -79,5 +90,6 @@ while True:
 
     except Exception as e:
         print(f"[!] Lỗi: {e}")
+        sys.stdout.flush()
 
     time.sleep(30)
